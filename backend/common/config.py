@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
 
+from . import constants as C
 from .storage import Storage
 
 
@@ -99,6 +100,7 @@ class JobDefaults:
     num_map_tasks: int = 8
     num_reduce_tasks: int = 4
     input_rows: int = 12000
+    split_strategy: str = C.SPLIT_BY_COUNT
     params: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -116,6 +118,8 @@ class JobDefaults:
             num_map_tasks=_int(self.num_map_tasks, 8, 1, 1000),
             num_reduce_tasks=_int(self.num_reduce_tasks, 4, 1, 500),
             input_rows=_int(self.input_rows, 12000, 10, 10_000_000),
+            split_strategy=(self.split_strategy if self.split_strategy in C.SPLIT_STRATEGIES
+                            else C.SPLIT_BY_COUNT),
             params=dict(self.params or {}),
         )
 

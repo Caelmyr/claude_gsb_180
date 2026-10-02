@@ -48,6 +48,13 @@
             </div>
           </div>
 
+          <label>切分策略 Split strategy</label>
+          <select id="split_strategy">
+            <option value="count">按行数均分 By count — 每个分片记录数尽量相等</option>
+            <option value="size">按数据量均分 By size — 每个分片字节量尽量相等</option>
+          </select>
+          <div class="hint" id="split-hint">分片数 = Map 任务数；按行数均分时各分片条数相差不超过 1。</div>
+
           <fieldset>
             <legend>高级 Advanced</legend>
             <label style="display:flex;align-items:center;gap:8px;margin:0">

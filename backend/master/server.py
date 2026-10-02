@@ -215,9 +215,16 @@ class Master:
         job, err, code = self._get_job(job_id)
         if job is None:
             return err, code
+        # The strategy actually applied at plan time (may differ from the
+        # requested one when the planner fell back, e.g. unmeasurable sizes).
+        strategy = job.stats.get("split_strategy") or job.split_strategy
         return jsonify({
             "job_id": job_id,
             "input_rows": job.input_rows,
+            "split_strategy": strategy,
+            "split_strategy_label": C.split_strategy_label(strategy),
+            "total_records": job.stats.get("total_records"),
+            "total_bytes": job.stats.get("total_bytes"),
             "input_shards": self.job_manager.planner.input_shards(job),
             "map_tasks": [self._task_view(t) for t in self.job_manager.tasks_for(job_id, C.TASK_MAP)],
             "reduce_tasks": [self._task_view(t) for t in self.job_manager.tasks_for(job_id, C.TASK_REDUCE)],

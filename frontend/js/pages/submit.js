@@ -4,12 +4,31 @@ const C = Components;
 
 let SAMPLES = [];
 
+const SPLIT_HINTS = {
+  count: '分片数 = Map 任务数；按行数均分时各分片条数相差不超过 1。',
+  size: '分片数 ≤ Map 任务数；按字节量均衡切分，单条记录过大时可能产生更少分片。',
+};
+
 async function init() {
   const funcs = await API.get('/api/functions');
   SAMPLES = await API.get('/api/samples');
 
   fillSelect('mapper', funcs.mappers);
   fillSelect('reducer', funcs.reducers);
+
+  const splitSel = document.getElementById('split_strategy');
+  splitSel.addEventListener('change', () => {
+    document.getElementById('split-hint').textContent = SPLIT_HINTS[splitSel.value] || '';
+  });
+
+  // Pre-select the cluster-wide default strategy (config page may override it).
+  try {
+    const defaults = await API.get('/api/config/defaults');
+    if (defaults.split_strategy && SPLIT_HINTS[defaults.split_strategy]) {
+      splitSel.value = defaults.split_strategy;
+      splitSel.dispatchEvent(new Event('change'));
+    }
+  } catch (e) { /* keep the built-in default */ }
 
   const preset = document.getElementById('preset');
   preset.innerHTML = SAMPLES.map(s => `<option value="${s.name}">${C.esc(s.name)}</option>`).join('');
@@ -41,6 +60,9 @@ function fillFromSample(s) {
   document.getElementById('num_map_tasks').value = s.num_map_tasks;
   document.getElementById('num_reduce_tasks').value = s.num_reduce_tasks;
   document.getElementById('input_rows').value = s.input_rows;
+  const splitSel = document.getElementById('split_strategy');
+  splitSel.value = s.split_strategy || 'count';
+  splitSel.dispatchEvent(new Event('change'));
   document.getElementById('simulate_failure').checked = false;
 }
 
@@ -53,6 +75,7 @@ async function onSubmit(ev) {
     num_map_tasks: parseInt(document.getElementById('num_map_tasks').value, 10),
     num_reduce_tasks: parseInt(document.getElementById('num_reduce_tasks').value, 10),
     input_rows: parseInt(document.getElementById('input_rows').value, 10),
+    split_strategy: document.getElementById('split_strategy').value,
     params: {},
   };
   if (document.getElementById('simulate_failure').checked) body.params.simulate_failure = true;

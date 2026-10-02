@@ -41,7 +41,7 @@ def generate_input_records(kind: str, rows: int, seed: int) -> list[Any]:
 
     # All text-shaped kinds share the same generator.
     records: list[str] = []
-    for _ in range(max(1, rows - 1)):
+    for _ in range(max(0, rows)):
         n = rng.randint(5, 12)
         records.append(" ".join(rng.choice(_WORD_POOL) for _ in range(n)))
     return records
@@ -102,6 +102,7 @@ SAMPLE_JOBS: list[dict] = [
         "num_map_tasks": 8,
         "num_reduce_tasks": 3,
         "input_rows": 15000,
+        "split_strategy": "size",
         "params": {},
     },
     {

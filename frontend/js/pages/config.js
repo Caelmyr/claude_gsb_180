@@ -26,6 +26,10 @@ const DEFAULT_FIELDS = [
   { key: 'num_map_tasks', label: '默认 Map 任务数 Map tasks', type: 'number', step: 1, min: 1 },
   { key: 'num_reduce_tasks', label: '默认 Reduce 任务数 Reduce tasks', type: 'number', step: 1, min: 1 },
   { key: 'input_rows', label: '默认输入行数 Input rows', type: 'number', step: 100, min: 10 },
+  { key: 'split_strategy', label: '默认切分策略 Split strategy', type: 'select', options: [
+    { value: 'count', label: '按行数均分 By count' },
+    { value: 'size', label: '按数据量均分 By size' },
+  ] },
 ];
 
 function renderForm(hostId, fields, data) {
@@ -36,6 +40,12 @@ function renderForm(hostId, fields, data) {
         <input type="checkbox" id="${hostId}-${f.key}" style="width:auto" ${data[f.key] ? 'checked' : ''}>
         ${C.esc(f.label)}
       </label>`;
+    }
+    if (f.type === 'select') {
+      const opts = (f.options || []).map(o =>
+        `<option value="${C.esc(o.value)}"${data[f.key] === o.value ? ' selected' : ''}>${C.esc(o.label)}</option>`
+      ).join('');
+      return `<label>${C.esc(f.label)}</label><select id="${hostId}-${f.key}">${opts}</select>`;
     }
     return `<label>${C.esc(f.label)}</label>
       <input type="${f.type}" id="${hostId}-${f.key}" value="${C.esc(data[f.key])}"

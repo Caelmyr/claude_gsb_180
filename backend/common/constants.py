@@ -58,6 +58,24 @@ TASK_MAP = "map"
 TASK_REDUCE = "reduce"
 
 # ---------------------------------------------------------------------------
+# Input split strategies (how the planner cuts input records into shards)
+# ---------------------------------------------------------------------------
+SPLIT_BY_COUNT = "count"   # shards balanced by record count (rows)
+SPLIT_BY_SIZE = "size"     # shards balanced by byte size (data volume)
+
+SPLIT_STRATEGIES = [SPLIT_BY_COUNT, SPLIT_BY_SIZE]
+
+SPLIT_STRATEGY_LABELS = {
+    SPLIT_BY_COUNT: "按行数均分 By count",
+    SPLIT_BY_SIZE: "按数据量均分 By size",
+}
+
+
+def split_strategy_label(strategy: str) -> str:
+    """Human readable bilingual label for a split strategy."""
+    return SPLIT_STRATEGY_LABELS.get(strategy, str(strategy))
+
+# ---------------------------------------------------------------------------
 # Worker states
 # ---------------------------------------------------------------------------
 WORKER_ALIVE = "alive"

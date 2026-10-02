@@ -79,13 +79,21 @@ class JobManager:
             raise ValueError(f"unknown reducer: {reducer!r}")
 
         defaults = payload.get("_defaults") or {}
-        num_map = int(payload.get("num_map_tasks", defaults.get("num_map_tasks", 8)))
-        num_reduce = int(payload.get("num_reduce_tasks", defaults.get("num_reduce_tasks", 4)))
-        input_rows = int(payload.get("input_rows", defaults.get("input_rows", 12000)))
+        num_map = max(1, int(payload.get("num_map_tasks", defaults.get("num_map_tasks", 8))))
+        num_reduce = max(1, int(payload.get("num_reduce_tasks", defaults.get("num_reduce_tasks", 4))))
+        input_rows = max(1, int(payload.get("input_rows", defaults.get("input_rows", 12000))))
+        split_strategy = str(payload.get("split_strategy")
+                             or defaults.get("split_strategy") or C.SPLIT_BY_COUNT)
+        if split_strategy not in C.SPLIT_STRATEGIES:
+            raise ValueError(
+                f"unknown split_strategy: {split_strategy!r} "
+                f"(expected one of {', '.join(C.SPLIT_STRATEGIES)})"
+            )
         params = dict(payload.get("params") or {})
         params["input_kind"] = input_kind_for(mapper)
 
-        job = new_job(name, mapper, reducer, num_map, num_reduce, input_rows, params)
+        job = new_job(name, mapper, reducer, num_map, num_reduce, input_rows, params,
+                      split_strategy=split_strategy)
 
         with self._lock:
             plan = self.planner.plan(job)
@@ -94,7 +102,9 @@ class JobManager:
             job.reduce_task_ids = [t.task_id for t in plan["reduce_tasks"]]
             job.status = C.JOB_MAP
             job.started_ms = now_ms()
-            job.stats["total_records"] = plan["total_records"] + 1
+            job.stats["total_records"] = plan["total_records"]
+            job.stats["total_bytes"] = plan["total_bytes"]
+            job.stats["split_strategy"] = plan["split_strategy"]
             job.stats["input_kind"] = params["input_kind"]
 
             self._jobs[job.job_id] = job
@@ -106,8 +116,11 @@ class JobManager:
 
         self.logbus.info(
             job.job_id, f"job submitted: {job.num_map_tasks} map / {job.num_reduce_tasks} reduce, "
-                        f"{plan['total_records']} records", task_id="submit",
+                        f"{plan['total_records']} records, split={plan['split_strategy']}",
+            task_id="submit",
         )
+        if plan["note"]:
+            self.logbus.warn(job.job_id, plan["note"], task_id="submit")
         return job
 
     # ------------------------------------------------------------------
@@ -237,6 +250,7 @@ class JobManager:
             "num_map_tasks": job.num_map_tasks,
             "num_reduce_tasks": job.num_reduce_tasks,
             "input_rows": job.input_rows,
+            "split_strategy": job.split_strategy,
             "created_ms": job.created_ms,
             "started_ms": job.started_ms,
             "finished_ms": job.finished_ms,
