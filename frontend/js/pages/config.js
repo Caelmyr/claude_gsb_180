@@ -28,6 +28,8 @@ const DEFAULT_FIELDS = [
   { key: 'input_rows', label: '默认输入行数 Input rows', type: 'number', step: 100, min: 10 },
 ];
 
+let SPLIT_FIELDS = [];
+
 function renderForm(hostId, fields, data) {
   const host = document.getElementById(hostId);
   host.innerHTML = fields.map(f => {
@@ -36,6 +38,12 @@ function renderForm(hostId, fields, data) {
         <input type="checkbox" id="${hostId}-${f.key}" style="width:auto" ${data[f.key] ? 'checked' : ''}>
         ${C.esc(f.label)}
       </label>`;
+    }
+    if (f.type === 'select') {
+      const opts = (f.options || []).map(o =>
+        `<option value="${C.esc(o.value)}"${o.value === data[f.key] ? ' selected' : ''}>${C.esc(o.label)}</option>`
+      ).join('');
+      return `<label>${C.esc(f.label)}</label><select id="${hostId}-${f.key}">${opts}</select>`;
     }
     return `<label>${C.esc(f.label)}</label>
       <input type="${f.type}" id="${hostId}-${f.key}" value="${C.esc(data[f.key])}"
@@ -57,8 +65,15 @@ function readForm(hostId, fields) {
 async function load() {
   const cfg = await API.get('/api/config');
   renderForm('cluster-form', CLUSTER_FIELDS, cfg);
+  const strategies = (await API.get('/api/split-strategies')).strategies || [];
+  SPLIT_FIELDS = [{
+    key: 'split_strategy',
+    label: '默认切分策略 Default split strategy',
+    type: 'select',
+    options: strategies.map(s => ({ value: s.name, label: s.label })),
+  }];
   const defaults = await API.get('/api/config/defaults');
-  renderForm('defaults-form', DEFAULT_FIELDS, defaults);
+  renderForm('defaults-form', DEFAULT_FIELDS.concat(SPLIT_FIELDS), defaults);
 }
 
 document.getElementById('save-cluster').addEventListener('click', async () => {
@@ -70,7 +85,7 @@ document.getElementById('save-cluster').addEventListener('click', async () => {
 });
 
 document.getElementById('save-defaults').addEventListener('click', async () => {
-  const body = readForm('defaults-form', DEFAULT_FIELDS);
+  const body = readForm('defaults-form', DEFAULT_FIELDS.concat(SPLIT_FIELDS));
   try {
     await API.put('/api/config/defaults', body);
     C.toast('默认值已保存 Defaults saved', 'ok');

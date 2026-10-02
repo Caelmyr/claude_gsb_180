@@ -3,13 +3,16 @@ Components.init('submit');
 const C = Components;
 
 let SAMPLES = [];
+let STRATEGIES = [];
 
 async function init() {
   const funcs = await API.get('/api/functions');
   SAMPLES = await API.get('/api/samples');
+  STRATEGIES = (await API.get('/api/split-strategies')).strategies || [];
 
   fillSelect('mapper', funcs.mappers);
   fillSelect('reducer', funcs.reducers);
+  fillStrategies();
 
   const preset = document.getElementById('preset');
   preset.innerHTML = SAMPLES.map(s => `<option value="${s.name}">${C.esc(s.name)}</option>`).join('');
@@ -27,6 +30,20 @@ async function init() {
       `<div class="small" style="padding:2px 0"><span class="mono">${C.esc(f.name)}</span> — ${C.esc(f.description)}</div>`).join('');
 
   loadRecent();
+}
+
+function fillStrategies() {
+  const sel = document.getElementById('split_strategy');
+  sel.innerHTML = STRATEGIES.map(s =>
+    `<option value="${C.esc(s.name)}">${C.esc(s.label)}</option>`).join('');
+  const def = STRATEGIES.find(s => s.default) || STRATEGIES[0];
+  if (def) sel.value = def.name;
+  const updateHint = () => {
+    const s = STRATEGIES.find(x => x.name === sel.value);
+    document.getElementById('split-hint').textContent = s ? s.description : '';
+  };
+  sel.addEventListener('change', updateHint);
+  updateHint();
 }
 
 function fillSelect(id, items) {
@@ -53,6 +70,7 @@ async function onSubmit(ev) {
     num_map_tasks: parseInt(document.getElementById('num_map_tasks').value, 10),
     num_reduce_tasks: parseInt(document.getElementById('num_reduce_tasks').value, 10),
     input_rows: parseInt(document.getElementById('input_rows').value, 10),
+    split_strategy: document.getElementById('split_strategy').value,
     params: {},
   };
   if (document.getElementById('simulate_failure').checked) body.params.simulate_failure = true;

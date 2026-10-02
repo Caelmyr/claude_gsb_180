@@ -27,6 +27,7 @@ from backend.master.metrics import Metrics
 from backend.master.registry import WorkerRegistry
 from backend.master.scheduler import Scheduler
 from backend.master.shuffle import ShuffleCoordinator
+from backend.master.split_strategy import list_strategies
 from backend.tasks.registry import list_all as list_functions
 from backend.tasks.samples import list_sample_jobs
 
@@ -76,6 +77,8 @@ class Master:
         # --- browser-facing -------------------------------------------------
         app.add_url_rule("/api/overview", "overview", self._overview, methods=["GET"])
         app.add_url_rule("/api/functions", "functions", self._functions, methods=["GET"])
+        app.add_url_rule("/api/split-strategies", "split_strategies",
+                         self._split_strategies, methods=["GET"])
         app.add_url_rule("/api/samples", "samples", self._samples, methods=["GET"])
         app.add_url_rule("/api/jobs", "jobs", self._jobs, methods=["GET", "POST"])
         app.add_url_rule("/api/jobs/<job_id>", "job_detail", self._job_detail, methods=["GET"])
@@ -169,6 +172,9 @@ class Master:
     def _functions(self):
         return jsonify(list_functions())
 
+    def _split_strategies(self):
+        return jsonify({"strategies": list_strategies()})
+
     def _samples(self):
         return jsonify(list_sample_jobs())
 
@@ -218,6 +224,7 @@ class Master:
         return jsonify({
             "job_id": job_id,
             "input_rows": job.input_rows,
+            "split_plan": self.job_manager.planner.split_plan(job),
             "input_shards": self.job_manager.planner.input_shards(job),
             "map_tasks": [self._task_view(t) for t in self.job_manager.tasks_for(job_id, C.TASK_MAP)],
             "reduce_tasks": [self._task_view(t) for t in self.job_manager.tasks_for(job_id, C.TASK_REDUCE)],

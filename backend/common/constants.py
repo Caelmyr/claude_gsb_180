@@ -58,6 +58,15 @@ TASK_MAP = "map"
 TASK_REDUCE = "reduce"
 
 # ---------------------------------------------------------------------------
+# Input split strategies (strategy implementations live in
+# master.split_strategy; the names are shared vocabulary here so the Job
+# record does not need to import the master package)
+# ---------------------------------------------------------------------------
+SPLIT_STRATEGY_ROWS = "rows"
+SPLIT_STRATEGY_BYTES = "bytes"
+DEFAULT_SPLIT_STRATEGY = SPLIT_STRATEGY_ROWS
+
+# ---------------------------------------------------------------------------
 # Worker states
 # ---------------------------------------------------------------------------
 WORKER_ALIVE = "alive"
